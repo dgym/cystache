@@ -1,0 +1,39 @@
+====== cystache ======
+
+A Cython/Python implementation of the mustache templating language.
+
+
+=== Building and installing ===
+
+To build run:
+    python setup.py build
+
+To install on the system run:
+    python setup.py install
+
+
+=== Running the spec tests ===
+
+There is a github project collecting implementation neutral tests at:
+    https://github.com/mustache/spec
+
+It has been included as a submodule, and can be retreived from a git
+checkout by running:
+    git submodule init
+    git submodule update
+
+To run the spec tests:
+    python tests/run_spec_tests.py spec/specs/*.json
+
+If you want to run the tests without installing cystache
+just add the build directory to your PYTHONPATH, for example:
+    PYTHONPATH=build/lib.linux-x86_64-2.6/ python tests/run_spec_tests.py spec/specs/*.json
+
+
+=== Basic usage ===
+
+>>> from cystache import Template
+>>> template = Template("This is a {{complexity}} example.")
+>>> template.render({'complexity':'simple'})
+u'This is a simple example.'
+>>> 
