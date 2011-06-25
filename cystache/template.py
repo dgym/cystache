@@ -1,5 +1,7 @@
-from indented_writer import IndentedWriter
+from cStringIO import StringIO
+
 from context import Context
+from render_state import RenderState
 from blocks import *
 
 class Template:
@@ -72,18 +74,21 @@ class Template:
             # strip out the line 
             tag_end = idx + l_ctag
             strip_line = False
+            standalone = None
 
             if control == '#':
-                new_section = SectionBlock(self, start, idx, tag[1:], section, otag, ctag)
+                new_section = SectionBlock(self, tag_start, tag_end, tag[1:], section, otag, ctag)
                 new_section.inner_start = tag_end
                 section.blocks.append(new_section)
                 section = new_section
                 strip_line = True
+                standalone = new_section
             elif control == '^':
-                new_section = InverseSectionBlock(self, start, idx, tag[1:], section)
+                new_section = InverseSectionBlock(self, tag_start, tag_end, tag[1:], section)
                 section.blocks.append(new_section)
                 section = new_section
                 strip_line = True
+                standalone = new_section
             elif control == '/':
                 if not section.parent:
                     raise SyntaxError('Unmatched closing tag %s at top level' % repr(tag))
@@ -100,19 +105,21 @@ class Template:
                 l_ctag = len(ctag)
                 strip_line = True
             elif control == '{':
-                section.blocks.append(UnquotedValueBlock(self, start, idx, tag[1:-1]))
+                section.blocks.append(UnquotedValueBlock(self, tag_start, tag_end, tag[1:-1]))
             elif control == '&':
-                section.blocks.append(UnquotedValueBlock(self, start, idx, tag[1:]))
+                section.blocks.append(UnquotedValueBlock(self, tag_start, tag_end, tag[1:]))
             elif control == '!':
                 # comment
                 strip_line = True
             elif control == '>':
                 # partial
-                section.blocks.append(PartialBlock(self, start, idx, tag[1:],
-                    self.loader.load(tag[1:].strip(), self.filename)))
+                partial = PartialBlock(self, tag_start, tag_end, tag[1:],
+                    self.loader.load(tag[1:].strip(), self.filename))
+                section.blocks.append(partial)
                 strip_line = True
+                standalone = partial
             else:
-                section.blocks.append(ValueBlock(self, start, idx, tag))
+                section.blocks.append(ValueBlock(self, tag_start, tag_end, tag))
 
             if strip_line:
                 # strip standalone tags
@@ -151,6 +158,8 @@ class Template:
             if strip_line:
                 if control == '>':
                     section.blocks[-1].indent = source[standalone_before:tag_start]
+                if standalone:
+                    standalone.starts_on_newline = True
                 if last_static:
                     last_static.end = standalone_before
                 start = standalone_after
@@ -166,12 +175,13 @@ class Template:
         else:
             context = Context(context_or_dict)
 
-        output = IndentedWriter()
+        output = StringIO()
+        rs = RenderState()
 
-        self._render(context, output)
+        self._render(context, output, rs)
 
         return unicode(output.getvalue())
 
-    def _render(self, context, output):
+    def _render(self, context, output, rs):
         for block in self.section.blocks:
-            block.render(context, output)
+            block.render(context, output, rs)

@@ -7,9 +7,12 @@ class Block:
         self.template = template
         self.start = start
         self.end = end
+        self.starts_on_newline = start == 0 or self.template.source[start - 1] == '\n'
 
-    def render(self, context, output):
-        pass
+    def render(self, context, output, rs):
+        if self.starts_on_newline and rs.indent:
+            output.write(rs.indent)
+        self._render(context, output, rs)
 
     def resolve_value(self, context, getarg = None):
         value = context.get(self.tag)
@@ -28,8 +31,12 @@ class Block:
         return '<%s>' % self.__class__.__name__
 
 class StaticBlock(Block):
-    def render(self, context, output):
-        output.write(self.template.source[self.start:self.end])
+    def _render(self, context, output, rs):
+        if rs.indent:
+            content = self.template.source[self.start:self.end-1].replace('\n', '\n' + rs.indent)
+            output.write(content + self.template.source[self.end-1:self.end])
+        else:
+            output.write(self.template.source[self.start:self.end])
 
 class TaggedBlock(Block):
     def __init__(self, template, start, end, tag):
@@ -40,18 +47,18 @@ class TaggedBlock(Block):
         return '<%s %s>' % (self.__class__.__name__, self.tag)
 
 class ValueBlock(TaggedBlock):
-    def render(self, context, output):
+    def _render(self, context, output, rs):
         value = self.resolve_value(context)
         output.write(escape(unicode(value)).replace('"', '&quot;'))
 
 class UnquotedValueBlock(TaggedBlock):
-    def render(self, context, output):
+    def _render(self, context, output, rs):
         value = self.resolve_value(context)
         output.write(unicode(value))
 
 class SectionBlock(TaggedBlock):
     def __init__(self, template, start, end, tag, parent, otag = '{{', ctag = '}}'):
-        TaggedBlock.__init__(self, '', start, end, tag)
+        TaggedBlock.__init__(self, template, start, end, tag)
         self.template = template
         self.parent = parent
         self.otag = otag
@@ -60,7 +67,7 @@ class SectionBlock(TaggedBlock):
         self.inner_start = 0
         self.inner_end = -1
 
-    def render(self, context, output):
+    def _render(self, context, output, rs):
         value = context.get(self.tag)
         if callable(value):
             value = value(self.template.source[self.inner_start:self.inner_end])
@@ -74,17 +81,17 @@ class SectionBlock(TaggedBlock):
                 for v in value:
                     inner_context = Context(v, context)
                     for block in self.blocks:
-                        block.render(inner_context, output)
+                        block.render(inner_context, output, rs)
             else:
                 inner_context = Context(value, context)
                 for block in self.blocks:
-                    block.render(inner_context, output)
+                    block.render(inner_context, output, rs)
 
     def __repr__(self):
         return '<%s %s %s>' % (self.__class__.__name__, self.tag, self.blocks)
 
 class InverseSectionBlock(SectionBlock):
-    def render(self, context, output):
+    def _render(self, context, output, rs):
         value = context.get(self.tag)
         if callable(value):
             # Call the function as it is expected
@@ -93,7 +100,7 @@ class InverseSectionBlock(SectionBlock):
             # if it doesn't exist
         elif not value:
             for block in self.blocks:
-                block.render(Context(value, context), output)
+                block.render(Context(value, context), output, rs)
 
 
 class PartialBlock(TaggedBlock):
@@ -102,11 +109,13 @@ class PartialBlock(TaggedBlock):
         self.partial = partial
         self.indent = ''
 
-    def render(self, context, output):
-        indent = output.indent
-        output.indent = self.indent
+    def _render(self, context, output, rs):
+        #if self.tag == 'partial':
+        #import pdb; pdb.set_trace()
+        indent = rs.indent
+        rs.indent += self.indent
         try:
             self.partial.compile()
-            self.partial._render(context, output)
+            self.partial._render(context, output, rs)
         finally:
-            output.indent = indent
+            rs.indent = indent
