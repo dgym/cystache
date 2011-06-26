@@ -3,11 +3,10 @@ from cgi import escape
 from context import Context
 
 class Block:
-    def __init__(self, template, start, end):
+    def __init__(self, template, reader):
         self.template = template
-        self.start = start
-        self.end = end
-        self.starts_on_newline = start == 0 or self.template.source[start - 1] == '\n'
+        self.start = reader.tag_start
+        self.starts_on_newline = False
 
     def render(self, context, output, rs):
         if self.starts_on_newline and rs.indent:
@@ -31,6 +30,16 @@ class Block:
         return '<%s>' % self.__class__.__name__
 
 class StaticBlock(Block):
+    def __init__(self, template, reader):
+        Block.__init__(self, template, reader)
+        self.template = template
+        self.start = reader.static_start
+        if reader.is_standalone():
+            self.end = reader.tag_start - reader.get_indent_length()
+        else:
+            self.end = reader.tag_start
+        self.starts_on_newline = reader.static_on_newline
+
     def _render(self, context, output, rs):
         if rs.indent:
             content = self.template.source[self.start:self.end-1].replace('\n', '\n' + rs.indent)
@@ -39,9 +48,10 @@ class StaticBlock(Block):
             output.write(self.template.source[self.start:self.end])
 
 class TaggedBlock(Block):
-    def __init__(self, template, start, end, tag):
-        Block.__init__(self, template, start, end)
+    def __init__(self, template, reader, tag):
+        Block.__init__(self, template, reader)
         self.tag = tag.strip()
+        self.starts_on_newline = (not reader.is_standalone()) and reader.get_indent_length() >= 0
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.tag)
@@ -57,14 +67,14 @@ class UnquotedValueBlock(TaggedBlock):
         output.write(unicode(value))
 
 class SectionBlock(TaggedBlock):
-    def __init__(self, template, start, end, tag, parent, otag = '{{', ctag = '}}'):
-        TaggedBlock.__init__(self, template, start, end, tag)
+    def __init__(self, template, reader, tag, parent, otag = '{{', ctag = '}}'):
+        TaggedBlock.__init__(self, template, reader, tag)
         self.template = template
         self.parent = parent
         self.otag = otag
         self.ctag = ctag
         self.blocks = []
-        self.inner_start = 0
+        self.inner_start = reader.tag_end
         self.inner_end = -1
 
     def _render(self, context, output, rs):
@@ -104,14 +114,12 @@ class InverseSectionBlock(SectionBlock):
 
 
 class PartialBlock(TaggedBlock):
-    def __init__(self, template, start, end, tag, partial):
-        TaggedBlock.__init__(self, template, start, end, tag)
+    def __init__(self, template, reader, tag, partial):
+        TaggedBlock.__init__(self, template, reader, tag)
         self.partial = partial
-        self.indent = ''
+        self.indent = reader.get_indent()
 
     def _render(self, context, output, rs):
-        #if self.tag == 'partial':
-        #import pdb; pdb.set_trace()
         indent = rs.indent
         rs.indent += self.indent
         try:

@@ -1,6 +1,7 @@
 import json
 import traceback
 import sys
+import bdb
 from cystache import Template, Loader
 
 def make_lambdas(d):
@@ -29,11 +30,12 @@ def run_tests(filename, stats):
                 raise Exception('%s != %s' % (repr(output), repr(test['expected'])))
             sys.stdout.write('.')
             stats.passed += 1
+        except bdb.BdbQuit, e:
+            break
         except:
             print
             print '==== FAILED ===='
-            print test['desc'] + ' ',
-            print test['name']
+            print '%s - %s' % (test['name'], test['desc'])
             traceback.print_exc()
             print
             stats.failed += 1

@@ -2,6 +2,7 @@ from cStringIO import StringIO
 
 from context import Context
 from render_state import RenderState
+from reader import Reader
 from blocks import *
 
 class Template:
@@ -9,27 +10,24 @@ class Template:
         self.source = source
         self.loader = loader
         self.filename = filename
-        self.section = SectionBlock(self, 0, len(source), '', None, '{{', '}}')
         self.compiled = False
 
     def compile(self, otag = '{{', ctag = '}}'):
         if self.compiled:
             return True
 
-        source = self.source
-        start = 0
-        end = len(source)
-        l_otag = len(otag)
-        l_ctag = len(ctag)
+        reader = Reader(self.source)
+        self.section = SectionBlock(self, reader, '', None, '{{', '}}')
         section = self.section
-        source_start = start
 
         while True:
-            idx = source.find(otag, start, end)
-            if idx == -1:
+            last_idx = reader.get_start_idx()
+
+            # first find the next opening tag
+            if not reader.find_opening_tag(otag):
                 # end of file
-                if start < end:
-                    section.blocks.append(StaticBlock(self, start, end))
+                if last_idx < reader.end:
+                    section.blocks.append(StaticBlock(self, reader))
                 if section != self.section:
                     unclosed = []
                     while section != self.section:
@@ -39,132 +37,65 @@ class Template:
                 self.compiled = True
                 return True
 
-            # write untagged content, remembering the last_static
-            # as it may need to be trimmed on standalone tag lines
-            if start < idx:
-                last_static = StaticBlock(self, start, idx)
-                section.blocks.append(last_static)
-            else:
-                last_static = None
-            tag_start = idx
-            start = idx + l_otag
-
-            # examine the control character
-            if start >= end:
+            # examine the control character as it affects the end tag
+            if reader.tag_inner_start >= reader.end:
                 raise SyntaxError('Premature end of script')
 
-            control = source[start]
+            control = reader.source[reader.tag_inner_start]
             if control == '{':
-                idx = source.find('}', start, end) + 1
+                reader.skip_over('}')
             elif control == '=':
-                idx = source.find('=', start, end) + 1
-            else:
-                idx = start
+                reader.skip_over('=')
 
-            if idx == -1:
+            # now find the closing tag
+            if not reader.find_closing_tag(ctag):
                 raise SyntaxError('Premature end of script')
 
-            # scan for ctag
-            idx = source.find(ctag, idx, end)
-            if idx == -1:
-                raise SyntaxError('Premature end of script')
+            # untagged content can change depending on whether the tag
+            # is standalone, so just store the information to write it
+            add_static_to = section.blocks
+            static_idx = len(section.blocks)
 
-            tag = source[start:idx]
-
-            # strip out the line 
-            tag_end = idx + l_ctag
-            strip_line = False
-            standalone = None
+            tag = reader.source[reader.tag_inner_start:reader.tag_inner_end]
 
             if control == '#':
-                new_section = SectionBlock(self, tag_start, tag_end, tag[1:], section, otag, ctag)
-                new_section.inner_start = tag_end
+                new_section = SectionBlock(self, reader, tag[1:], section, otag, ctag)
                 section.blocks.append(new_section)
                 section = new_section
-                strip_line = True
-                standalone = new_section
             elif control == '^':
-                new_section = InverseSectionBlock(self, tag_start, tag_end, tag[1:], section)
+                new_section = InverseSectionBlock(self, reader, tag[1:], section)
                 section.blocks.append(new_section)
                 section = new_section
-                strip_line = True
-                standalone = new_section
             elif control == '/':
                 if not section.parent:
                     raise SyntaxError('Unmatched closing tag %s at top level' % repr(tag))
                 tag = tag[1:].strip()
                 if tag != section.tag:
                     raise SyntaxError('Unmatched closing tag %s, expecting %s' % (repr(tag), repr(section.tag)))
-                if isinstance(section, SectionBlock):
-                    section.inner_end = tag_start
+                section.inner_end = reader.tag_start
                 section = section.parent
-                strip_line = True
             elif control == '=':
                 otag, ctag = tag[1:-1].split()
-                l_otag = len(otag)
-                l_ctag = len(ctag)
-                strip_line = True
             elif control == '{':
-                section.blocks.append(UnquotedValueBlock(self, tag_start, tag_end, tag[1:-1]))
+                reader.never_standalone()
+                section.blocks.append(UnquotedValueBlock(self, reader, tag[1:-1]))
             elif control == '&':
-                section.blocks.append(UnquotedValueBlock(self, tag_start, tag_end, tag[1:]))
+                reader.never_standalone()
+                section.blocks.append(UnquotedValueBlock(self, reader, tag[1:]))
             elif control == '!':
                 # comment
-                strip_line = True
+                pass
             elif control == '>':
                 # partial
-                partial = PartialBlock(self, tag_start, tag_end, tag[1:],
+                partial = PartialBlock(self, reader, tag[1:],
                     self.loader.load(tag[1:].strip(), self.filename))
                 section.blocks.append(partial)
-                strip_line = True
-                standalone = partial
             else:
-                section.blocks.append(ValueBlock(self, tag_start, tag_end, tag))
+                reader.never_standalone()
+                section.blocks.append(ValueBlock(self, reader, tag))
 
-            if strip_line:
-                # strip standalone tags
-                standalone_before = source_start
-                for i in range(tag_start-1, source_start-1, -1):
-                    c = source[i] 
-                    if c == '\r' or c == '\n':
-                        standalone_before = i + 1
-                        break
-                    elif c == ' ' or c == '\t':
-                        continue
-                    standalone_before = -1
-                    strip_line = False
-                    break
-
-            if strip_line:
-                standalone_after = end
-                for i in range(tag_end, end):
-                    c = source[i] 
-                    if c == '\r':
-                        i += 1
-                        if i < end and source[i] == '\n':
-                            standalone_after = i + 1
-                        else:
-                            standalone_after = i
-                        break
-                    elif c == '\n':
-                        standalone_after = i + 1
-                        break
-                    elif c == ' ' or c == '\t':
-                        continue
-                    strip_line = False
-                    standalone_after = -1
-                    break
-
-            if strip_line:
-                if control == '>':
-                    section.blocks[-1].indent = source[standalone_before:tag_start]
-                if standalone:
-                    standalone.starts_on_newline = True
-                if last_static:
-                    last_static.end = standalone_before
-                start = standalone_after
-            else:
-                start = tag_end
+            # now insert the static content
+            add_static_to.insert(static_idx, StaticBlock(self, reader))
 
     def render(self, context_or_dict, output = None):
         if not self.compiled:
