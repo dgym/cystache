@@ -41,6 +41,8 @@ class StaticBlock(Block):
         self.starts_on_newline = reader.static_on_newline
 
     def _render(self, context, output, rs):
+        if self.start >= self.end:
+            return
         if rs.indent:
             content = self.template.source[self.start:self.end-1].replace('\n', '\n' + rs.indent)
             output.write(content + self.template.source[self.end-1:self.end])
