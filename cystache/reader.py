@@ -121,8 +121,3 @@ class Reader:
                     break
                 self._trailing_whitespace_length += 1
         return self._trailing_whitespace_length
-
-
-
-
-
