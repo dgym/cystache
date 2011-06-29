@@ -1,0 +1,47 @@
+<html>
+    <body>
+        <h1>This page is just long to benchmark cystache's performance</h1>
+
+        <h2>Virtual goods store</h2>
+
+        {{{vgs_intro}}}
+
+        <h3>Emotions</h3>
+        <ol>
+            {{#emotions}}
+                {{>speed_emotion_row}}
+            {{/emotions}}
+        </ol>
+
+        <h3>Colours</h3>
+        <ol>
+            {{#colours}}
+                {{>speed_colour_row}}
+            {{/colours}}
+        </ol>
+
+        {{#previous_order}}
+            <h3>Previously ordered items</h3>
+            <li>
+                {{#items}}
+                    {{>speed_item_row}}
+                {{/items}}
+            </li>
+        {{/previous_order}}
+        {{^previous_order}}
+            <b>You have no previously ordered items</b>
+        {{/previous_order}}
+
+        {{#future_order}}
+            <h3>Items ordered in the future</h3>
+            <li>
+                {{#items}}
+                    {{>speed_item_row}}
+                {{/items}}
+            </li>
+        {{/future_order}}
+        {{^future_order}}
+            <b>You will not order any items in the future</b>
+        {{/future_order}}
+    </body>
+</html>
