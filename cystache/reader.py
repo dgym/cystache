@@ -87,9 +87,9 @@ class Reader:
             self._indent_length = 0
             for i in range(self.tag_start-1, self.start-1, -1):
                 c = self.source[i]
-                if c == '\r' or c == '\n':
+                if c == u'\r' or c == u'\n':
                     break
-                elif c != ' ' and c != '\t':
+                elif c != u' ' and c != u'\t':
                     self._indent_length = -1
                     break
                 self._indent_length += 1
@@ -100,23 +100,23 @@ class Reader:
             l = self.get_indent_length()
             if l > 0:
                 return self.source[self.tag_start-l:self.tag_start]
-        return ''
+        return u''
 
     def get_trailing_whitespace_length(self):
         if self._trailing_whitespace_length == -2:
             self._trailing_whitespace_length = 0
             for i in range(self.tag_end, self.end):
                 c = self.source[i]
-                if c == '\r':
+                if c == u'\r':
                     if i + 1 < self.end and self.source[i + 1] == '\n':
                         self._trailing_whitespace_length += 2
                     else:
                         self._trailing_whitespace_length += 1
                     break
-                if c == '\n':
+                if c == u'\n':
                     self._trailing_whitespace_length += 1
                     break
-                elif c != ' ' and c != '\t':
+                elif c != u' ' and c != u'\t':
                     self._trailing_whitespace_length = -1
                     break
                 self._trailing_whitespace_length += 1

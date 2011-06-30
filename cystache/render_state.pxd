@@ -1,2 +1,2 @@
 cdef class RenderState:
-    cdef public str indent
+    cdef public unicode indent

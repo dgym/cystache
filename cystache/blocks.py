@@ -69,7 +69,7 @@ class UnquotedValueBlock(TaggedBlock):
         output.write(unicode(value))
 
 class SectionBlock(TaggedBlock):
-    def __init__(self, template, reader, tag, parent, otag = '{{', ctag = '}}'):
+    def __init__(self, template, reader, tag, parent, otag = u'{{', ctag = u'}}'):
         TaggedBlock.__init__(self, template, reader, tag)
         self.template = template
         self.parent = parent

@@ -2,14 +2,14 @@ from reader cimport Reader
 import cython
 
 cdef class Template:
-    cdef public str source
+    cdef public unicode source
     cdef public object loader
-    cdef public str filename
+    cdef public unicode filename
     cdef bint compiled
     cdef object section
 
     @cython.locals(reader = Reader)
-    cpdef bint compile(self, str otag=*, str ctag=*)
+    cdef bint _compile(self, unicode otag, unicode ctag) except *
     #cpdef unicode render(self, object, object)
     #cpdef _render(self, object, object, object)
 

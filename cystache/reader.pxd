@@ -1,5 +1,5 @@
 cdef class Reader:
-    cdef public str source
+    cdef public unicode source
     cdef int start
     cdef public int end
     cdef int idx
@@ -14,11 +14,11 @@ cdef class Reader:
     cdef public bint static_on_newline
 
     cpdef int get_start_idx(self)
-    cpdef int find_opening_tag(self, str)
-    cpdef int skip_over(self, str)
-    cpdef int find_closing_tag(self, str)
+    cpdef int find_opening_tag(self, unicode)
+    cpdef int skip_over(self, unicode)
+    cpdef int find_closing_tag(self, unicode)
     cpdef never_standalone(self)
     cpdef bint is_standalone(self)
     cpdef int get_indent_length(self)
-    cpdef str get_indent(self)
+    cpdef unicode get_indent(self)
     cpdef int get_trailing_whitespace_length(self)

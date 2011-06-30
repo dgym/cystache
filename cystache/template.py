@@ -7,17 +7,20 @@ from blocks import *
 
 class Template:
     def __init__(self, source, loader = None, filename = None, compile = True):
-        self.source = source
+        self.source = unicode(source)
         self.loader = loader
-        self.filename = filename
+        self.filename = unicode(filename)
         self.compiled = False
 
-    def compile(self, otag = '{{', ctag = '}}'):
+    def compile(self, otag = u'{{', ctag = u'}}'):
+        return self._compile(unicode(otag), unicode(ctag))
+
+    def _compile(self, otag, ctag):
         if self.compiled:
             return True
 
         reader = Reader(self.source)
-        self.section = SectionBlock(self, reader, '', None, '{{', '}}')
+        self.section = SectionBlock(self, reader, u'', None, u'{{', u'}}')
         section = self.section
 
         while True:
@@ -42,10 +45,10 @@ class Template:
                 raise SyntaxError('Premature end of script')
 
             control = reader.source[reader.tag_inner_start]
-            if control == '{':
-                reader.skip_over('}')
-            elif control == '=':
-                reader.skip_over('=')
+            if control == u'{':
+                reader.skip_over(u'}')
+            elif control == u'=':
+                reader.skip_over(u'=')
 
             # now find the closing tag
             if not reader.find_closing_tag(ctag):
@@ -58,15 +61,15 @@ class Template:
 
             tag = reader.source[reader.tag_inner_start:reader.tag_inner_end]
 
-            if control == '#':
+            if control == u'#':
                 new_section = SectionBlock(self, reader, tag[1:], section, otag, ctag)
                 section.blocks.append(new_section)
                 section = new_section
-            elif control == '^':
+            elif control == u'^':
                 new_section = InverseSectionBlock(self, reader, tag[1:], section)
                 section.blocks.append(new_section)
                 section = new_section
-            elif control == '/':
+            elif control == u'/':
                 if not section.parent:
                     raise SyntaxError('Unmatched closing tag %s at top level' % repr(tag))
                 tag = tag[1:].strip()
@@ -74,18 +77,18 @@ class Template:
                     raise SyntaxError('Unmatched closing tag %s, expecting %s' % (repr(tag), repr(section.tag)))
                 section.inner_end = reader.tag_start
                 section = section.parent
-            elif control == '=':
+            elif control == u'=':
                 otag, ctag = tag[1:-1].split()
-            elif control == '{':
+            elif control == u'{':
                 reader.never_standalone()
                 section.blocks.append(UnquotedValueBlock(self, reader, tag[1:-1]))
-            elif control == '&':
+            elif control == u'&':
                 reader.never_standalone()
                 section.blocks.append(UnquotedValueBlock(self, reader, tag[1:]))
-            elif control == '!':
+            elif control == u'!':
                 # comment
                 pass
-            elif control == '>':
+            elif control == u'>':
                 # partial
                 partial = PartialBlock(self, reader, tag[1:],
                     self.loader.load(tag[1:].strip(), self.filename))

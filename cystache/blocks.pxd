@@ -10,7 +10,7 @@ cdef class StaticBlock(Block):
     cdef int end
 
 cdef class TaggedBlock(Block):
-    cdef public str tag
+    cdef public unicode tag
 
 cdef class ValueBlock(TaggedBlock):
     pass
@@ -20,8 +20,8 @@ cdef class UnquotedValueBlock(TaggedBlock):
 
 cdef class SectionBlock(TaggedBlock):
     cdef public object parent
-    cdef public str otag
-    cdef public str ctag
+    cdef public unicode otag
+    cdef public unicode ctag
     cdef public list blocks
     cdef public int inner_start
     cdef public int inner_end
@@ -31,4 +31,4 @@ cdef class InverseSectionBlock(SectionBlock):
 
 cdef class PartialBlock(TaggedBlock):
     cdef object partial
-    cdef str indent
+    cdef unicode indent
