@@ -1,33 +1,26 @@
 class Context:
     def __init__(self, data, parent = None):
-        if isinstance(data, dict):
-            self.dict = data
-            self.obj = None
-        else:
-            self.dict = None
-            self.obj = data
+        self.data = data
+        self.is_dict = isinstance(data, dict)
         self.parent = parent
 
     def get(self, key):
-        if key == '.':
-            if self.dict is not None:
-                return self.dict
-            else:
-                return self.obj
+        if key == u'.':
+            return self.data
 
-        parts = key.split('.')
+        parts = key.split(u'.')
         key = parts[0]
         ctx = self
         while True:
-            if ctx.dict is not None:
+            if ctx.is_dict:
                 try:
-                    value = ctx.dict[key]
+                    value = ctx.data[key]
                     break
                 except:
                     pass
             else:
                 try:
-                    value = getattr(ctx.obj, key)
+                    value = getattr(ctx.data, key)
                     break
                 except:
                     pass

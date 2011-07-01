@@ -1,3 +1,8 @@
+# cython: profile=False
+
+import cython
+
+@cython.final
 cdef class Reader:
     cdef public unicode source
     cdef int start
@@ -19,6 +24,12 @@ cdef class Reader:
     cpdef int find_closing_tag(self, unicode)
     cpdef never_standalone(self)
     cpdef bint is_standalone(self)
+
+    @cython.locals(i = int)
     cpdef int get_indent_length(self)
+
+    @cython.locals(l = int)
     cpdef unicode get_indent(self)
+
+    @cython.locals(i = int)
     cpdef int get_trailing_whitespace_length(self)

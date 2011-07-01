@@ -8,7 +8,7 @@ class Reader:
             self.end = len(self.source)
 
         # idx is the curront position
-        self.idx = start
+        self.idx = self.start
 
         # tag positions
         self.tag_start = -1
@@ -108,7 +108,7 @@ class Reader:
             for i in range(self.tag_end, self.end):
                 c = self.source[i]
                 if c == u'\r':
-                    if i + 1 < self.end and self.source[i + 1] == '\n':
+                    if i + 1 < self.end and self.source[i + 1] == u'\n':
                         self._trailing_whitespace_length += 2
                     else:
                         self._trailing_whitespace_length += 1

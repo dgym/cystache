@@ -1,6 +1,11 @@
-from cgi import escape
-
 from context import Context
+
+def escape(s):
+    s = s.replace('&', "&amp;") # Must be done first!
+    s = s.replace('<', "&lt;")
+    s = s.replace('>', "&gt;")
+    s = s.replace('"', "&quot;")
+    return s
 
 class Block:
     def __init__(self, template, reader):
@@ -25,6 +30,9 @@ class Block:
                 template =  self.template.__class__(value, self.template.loader)
                 value = template.render(context)
         return value
+
+    def _render(self, context, output, rs):
+        pass
 
     def __repr__(self):
         return '<%s>' % self.__class__.__name__
@@ -61,7 +69,7 @@ class TaggedBlock(Block):
 class ValueBlock(TaggedBlock):
     def _render(self, context, output, rs):
         value = self.resolve_value(context)
-        output.write(escape(unicode(value)).replace('"', '&quot;'))
+        output.write(escape(unicode(value)))
 
 class UnquotedValueBlock(TaggedBlock):
     def _render(self, context, output, rs):

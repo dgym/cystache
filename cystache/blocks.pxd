@@ -1,10 +1,19 @@
+# cython: profile=False
+
+import cython
 from reader cimport Reader
+from render_state cimport RenderState
 cimport template
+
+cdef unicode escape(unicode s)
 
 cdef class Block:
     cdef template.Template template
     cdef int start
     cdef bint starts_on_newline
+
+    cpdef render(self, object context, object output, RenderState rs)
+    cdef _render(self, object context, object output, RenderState rs)
 
 cdef class StaticBlock(Block):
     cdef int end

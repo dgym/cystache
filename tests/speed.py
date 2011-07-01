@@ -9,6 +9,7 @@ class FileLoader(Loader):
             f = open(filename, 'r')
             try:
                 template = Template(f.read(), self, filename = '<internal>')
+                self.templates[tag] = template
             finally:
                 f.close()
         return template
@@ -24,10 +25,11 @@ context['previous_order'] = {
 }
 
 
-loader = FileLoader()
-# preload
 def run():
+    loader = FileLoader()
     return loader.load('speed').render(context)
+
+# preload
 print run()
 
 def report(proc, count):

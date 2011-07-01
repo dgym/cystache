@@ -9,7 +9,7 @@ class Template:
     def __init__(self, source, loader = None, filename = None, compile = True):
         self.source = unicode(source)
         self.loader = loader
-        self.filename = unicode(filename)
+        self.filename = filename and unicode(filename)
         self.compiled = False
 
     def compile(self, otag = u'{{', ctag = u'}}'):
