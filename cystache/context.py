@@ -38,4 +38,4 @@ class Context:
                     value = getattr(value, part)
             except:
                 return ''
-        return value or ''
+        return value

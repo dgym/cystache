@@ -6,6 +6,7 @@ from render_state cimport RenderState
 cimport template
 
 cdef unicode escape(unicode s)
+cdef unicode as_string(object s)
 
 cdef class Block:
     cdef template.Template template
@@ -34,6 +35,9 @@ cdef class SectionBlock(TaggedBlock):
     cdef public list blocks
     cdef public int inner_start
     cdef public int inner_end
+
+    @cython.locals(use_return = bint)
+    cdef _render(self, object context, object output, RenderState rs)
 
 cdef class InverseSectionBlock(SectionBlock):
     pass

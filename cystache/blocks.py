@@ -7,6 +7,11 @@ def escape(s):
     s = s.replace('"', "&quot;")
     return s
 
+def as_string(value):
+    if value == 0:
+        return u'0'
+    return unicode(value)
+
 class Block:
     def __init__(self, template, reader):
         self.template = template
@@ -29,7 +34,7 @@ class Block:
             if isinstance(value, basestring):
                 template =  self.template.__class__(value, self.template.loader)
                 value = template.render(context)
-        return value
+        return as_string(value)
 
     def _render(self, context, output, rs):
         pass
@@ -89,19 +94,22 @@ class SectionBlock(TaggedBlock):
 
     def _render(self, context, output, rs):
         value = context.get(self.tag)
+        use_return = False
         if callable(value):
             value = value(self.template.source[self.inner_start:self.inner_end])
+            use_return = True
             if isinstance(value, basestring):
                 template =  self.template.__class__(value, self.template.loader)
                 template.compile(self.otag, self.ctag)
                 value = template.render(context)
-            output.write(value)
-        elif value:
+        if value:
             if hasattr(value, '__iter__') and not isinstance(value, dict):
                 for v in value:
                     inner_context = Context(v, context)
                     for block in self.blocks:
                         block.render(inner_context, output, rs)
+            elif use_return:
+                output.write(as_string(value))
             else:
                 inner_context = Context(value, context)
                 for block in self.blocks:
