@@ -1,3 +1,4 @@
+from context_manager import context_manager
 from context import Context
 
 def escape(s):
@@ -8,8 +9,10 @@ def escape(s):
     return s
 
 def as_string(value):
-    if value == 0:
+    if value is 0:
         return u'0'
+    if not value:
+        return u''
     return unicode(value)
 
 class Block:
@@ -106,14 +109,22 @@ class SectionBlock(TaggedBlock):
             if hasattr(value, '__iter__') and not isinstance(value, dict):
                 for v in value:
                     inner_context = Context(v, context)
-                    for block in self.blocks:
-                        block.render(inner_context, output, rs)
+                    old_context = context_manager._set_current_context(inner_context)
+                    try:
+                        for block in self.blocks:
+                            block.render(inner_context, output, rs)
+                    finally:
+                        context_manager._set_current_context(old_context)
             elif use_return:
                 output.write(as_string(value))
             else:
                 inner_context = Context(value, context)
-                for block in self.blocks:
-                    block.render(inner_context, output, rs)
+                old_context = context_manager._set_current_context(inner_context)
+                try:
+                    for block in self.blocks:
+                        block.render(inner_context, output, rs)
+                finally:
+                    context_manager._set_current_context(old_context)
 
     def __repr__(self):
         return '<%s %s %s>' % (self.__class__.__name__, self.tag, self.blocks)
@@ -140,8 +151,10 @@ class PartialBlock(TaggedBlock):
     def _render(self, context, output, rs):
         indent = rs.indent
         rs.indent += self.indent
+        old_template = context_manager._set_current_template(self.partial)
         try:
             self.partial.compile()
             self.partial._render(context, output, rs)
         finally:
             rs.indent = indent
+            context_manager._set_current_template(old_template)

@@ -22,6 +22,7 @@ try:
     kwargs['ext_modules'] = [
         Extension('cystache.reader',['cystache/reader.py']),
         Extension('cystache.blocks',['cystache/blocks.py']),
+        Extension('cystache.context_manager',['cystache/context_manager.py']),
         Extension('cystache.context',['cystache/context.py']),
         Extension('cystache.render_state',['cystache/render_state.py']),
         Extension('cystache.template',['cystache/template.py']),

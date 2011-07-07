@@ -1,5 +1,6 @@
 from cStringIO import StringIO
 
+from context_manager import context_manager
 from context import Context
 from render_state import RenderState
 from reader import Reader
@@ -117,5 +118,11 @@ class Template:
         return unicode(output.getvalue())
 
     def _render(self, context, output, rs):
-        for block in self.section.blocks:
-            block.render(context, output, rs)
+        old_template = context_manager._set_current_template(self)
+        old_context = context_manager._set_current_context(context)
+        try:
+            for block in self.section.blocks:
+                block.render(context, output, rs)
+        finally:
+            context_manager._set_current_template(old_template)
+            context_manager._set_current_context(old_context)

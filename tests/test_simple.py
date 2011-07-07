@@ -25,6 +25,12 @@ class TestSimple(unittest.TestCase):
     def test_zero(self):
         self.assertRender('{{v}}', '0', v='0')
 
+    def test_falsey(self):
+        self.assertRender('{{v}}', '', v=False)
+        self.assertRender('{{v}}', '', v=None)
+        self.assertRender('{{v}}', '', v=[])
+        self.assertRender('{{v}}', '', v={})
+
     def test_lambda_list(self):
         self.assertRender('{{#l}}{{.}},{{/l}}', '1,2,3,', l=lambda x:[1,2,3])
 
