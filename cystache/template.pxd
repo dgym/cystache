@@ -1,7 +1,11 @@
 # cython: profile=False
 
 import cython
+
+from context_manager cimport ContextManager
 from reader cimport Reader
+
+cython.declare(context_manager = ContextManager)
 
 cdef class Template:
     cdef public unicode source

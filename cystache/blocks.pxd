@@ -1,9 +1,13 @@
 # cython: profile=False
 
 import cython
+
+from context_manager cimport ContextManager
 from reader cimport Reader
 from render_state cimport RenderState
 cimport template
+
+cython.declare(context_manager = ContextManager)
 
 cdef unicode escape(unicode s)
 cdef unicode as_string(object s)
